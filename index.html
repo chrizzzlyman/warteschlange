@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>⌛ Klassen-Warteschlange Pro</title>
+  <style>
+    :root {
+      /* Modernisierte Farbpalette */
+      --bg-color: #f0f4f8;
+      --card-bg: #ffffff;
+      --text-color: #1a202c;
+      --text-muted: #718096;
+      
+      --primary: #3182ce; /* Modernes Blau */
+      --primary-hover: #2b6cb0;
+      
+      --yellow-btn: #f6ad55; /* Weicheres Orange-Gelb */
+      --yellow-hover: #ed8936;
+      --yellow-bg: #fffaf0;
+      --yellow-text: #c05621;
+      
+      --red-btn: #fc8181; /* Weicheres Rot */
+      --red-hover: #f56565;
+      --red-bg: #fff5f5;
+      --red-text: #c53030;
+      
+      --disabled-bg: #e2e8f0;
+      --disabled-text: #a0aec0;
+      
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      
+      --transition: all 0.2s ease-in-out;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      background-color: var(--card-bg);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    select, button {
+      padding: 10px 16px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    select:focus, button:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2);
+    }
+
+    button.primary {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+    }
+
+    button.primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    button.secondary {
+      background-color: #edf2f7;
+      color: #4a5568;
+      border: none;
+    }
+
+    button.secondary:hover {
+      background-color: #e2e8f0;
+    }
+
+    /* Main Area Layout */
+    .app-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left: Student Grid */
+    .students-section {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .student-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: var(--transition);
+      border: 2px solid transparent;
+    }
+
+    .student-card:not(.disabled):hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: #e2e8f0;
+    }
+
+    .student-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      word-break: break-word;
+      color: var(--text-color);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-queue {
+      flex: 1;
+      padding: 14px 8px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    /* SVG Hourglass Icon Style */
+    .hourglass-icon {
+      width: 24px;
+      height: 24px;
+      transition: var(--transition);
+    }
+
+    .btn-yellow {
+      background-color: var(--yellow-bg);
+      color: var(--yellow-text);
+      border: 2px solid var(--yellow-btn);
+    }
+    .btn-yellow .hourglass-icon { fill: var(--yellow-btn); }
+    .btn-yellow:hover { background-color: var(--yellow-btn); color: white; }
+    .btn-yellow:hover .hourglass-icon { fill: white; }
+
+    .btn-red {
+      background-color: var(--red-bg);
+      color: var(--red-text);
+      border: 2px solid var(--red-btn);
+    }
+    .btn-red .hourglass-icon { fill: var(--red-btn); }
+    .btn-red:hover { background-color: var(--red-btn); color: white; }
+    .btn-red:hover .hourglass-icon { fill: white; }
+
+    /* Student Card Disabled State */
+    .student-card.disabled {
+      background-color: var(--disabled-bg);
+      opacity: 0.5;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .student-card.disabled .student-name {
+      color: var(--disabled-text);
+      text-decoration: line-through;
+    }
+
+    .student-card.disabled button {
+      background-color: #cbd5e0 !important;
+      color: #718096 !important;
+      border-color: #cbd5e0 !important;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .student-card.disabled .hourglass-icon { fill: #718096 !important; }
+
+    /* Right: Queue Sidebar */
+    .queue-section {
+      width: 360px;
+      background: var(--card-bg);
+      border-left: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .queue-header {
+      padding: 20px 24px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .queue-header h3 {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    #queueCount {
+      background: var(--primary);
+      color: white;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .queue-list {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .queue-item {
+      padding: 16px 20px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      border-left: 6px solid transparent;
+    }
+
+    .queue-item:hover {
+      transform: translateX(-4px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .queue-item.short {
+      background-color: var(--yellow-bg);
+      border-left-color: var(--yellow-btn);
+      color: var(--yellow-text);
+    }
+    .queue-item.short .hourglass-icon { fill: var(--yellow-btn); }
+
+    .queue-item.long {
+      background-color: var(--red-bg);
+      border-left-color: var(--red-btn);
+      color: var(--red-text);
+    }
+    .queue-item.long .hourglass-icon { fill: var(--red-btn); }
+
+    .empty-queue {
+      text-align: center;
+      color: var(--text-muted);
+      margin-top: 60px;
+      font-style: italic;
+      font-size: 1.1rem;
+    }
+
+    /* Modal for Managing Classes */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      width: 90%;
+      max-width: 550px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 16px;
+    }
+
+    .modal-header h3 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .student-input-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .student-input-group input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      font-size: 1rem;
+    }
+
+    .student-input-group input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .manage-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px;
+      background: #f8fafc;
+    }
+
+    .manage-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 600;
+    }
+
+    .manage-item:last-child {
+      border-bottom: none;
+    }
+
+    .btn-danger {
+      background: var(--red-btn);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .btn-danger:hover {
+      background: var(--red-hover);
+    }
+
+    hr {
+      border: 0;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    label {
+      font-weight: 700;
+      color: var(--text-color);
+      display: block;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header / Navigation -->
+  <header>
+    <h1>⌛ Meldeschlange Pro</h1>
+    <div class="header-controls">
+      <select id="classSelect" onchange="switchClass(this.value)"></select>
+      <button class="secondary" onclick="openModal()">⚙️ Klassen verwalten</button>
+      <button class="primary" onclick="clearQueue()">🗑️ Schlange leeren</button>
+    </div>
+  </header>
+
+  <!-- Hauptbereich -->
+  <div class="app-container">
+    <!-- Links: Schüler-Kacheln -->
+    <section class="students-section">
+      <div id="studentGrid" class="student-grid"></div>
+    </section>
+
+    <!-- Rechts: Warteliste -->
+    <section class="queue-section">
+      <div class="queue-header">
+        <h3>Warteliste</h3>
+        <span id="queueCount">0</span>
+      </div>
+      <div id="queueList" class="queue-list"></div>
+    </section>
+  </div>
+
+  <!-- Modal: Klassen & Schüler verwalten -->
+  <div id="manageModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Klassen & Schüler verwalten</h3>
+        <button class="close-modal" onclick="closeModal()">✕</button>
+      </div>
+
+      <div>
+        <label>Neue Klasse erstellen:</label>
+        <div class="student-input-group">
+          <input type="text" id="newClassName" placeholder="z. B. Klasse 3b">
+          <button class="primary" onclick="addClass()">Anlegen</button>
+        </div>
+      </div>
+
+      <hr>
+
+      <div>
+        <label>Schüler zu '<span id="modalClassName"></span>' hinzufügen:</label>
+        <div class="student-input-group">
+          <input type="text" id="newStudentName" placeholder="Name des Schülers">
+          <button class="primary" onclick="addStudent()">Hinzufügen</button>
+        </div>
+      </div>
+
+      <div>
+        <label>Schülerliste:</label>
+        <div id="manageStudentList" class="manage-list"></div>
+      </div>
+
+      <button onclick="deleteCurrentClass()" class="btn-danger" style="align-self: flex-start; margin-top: 10px;">
+        🗑️ Diese Klasse löschen
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Definition der SVG-Sanduhr für volle Farbkontrolle
+    const svgHourglass = `<svg class="hourglass-icon" viewBox="0 0 24 24"><path d="M6 2h12v6l-4 4 4 4v6H6v-6l4-4-4-4V2zm10 2H8v3.17L12 11l4-3.83V4zM8 20h8v-3.17L12 13l-4 3.83V20z"></path></svg>`;
+
+    // Standard-Daten beim ersten Start
+    const defaultData = {
+      activeClassId: "c1",
+      classes: [
+        {
+          id: "c1",
+          name: "Klasse 3a",
+          students: [
+            "Alexander", "Anna", "Ben", "Clara", "David", "Emma", "Felix", "Hannah",
+            "Jakob", "Lina", "Lukas", "Mia", "Noah", "Paul", "Sophie", "Tim", "Tobias"
+          ]
+        }
+      ]
+    };
+
+    // Daten aus LocalStorage laden oder Defaults setzen
+    let appData = JSON.parse(localStorage.getItem('queueAppData')) || defaultData;
+    let queue = JSON.parse(localStorage.getItem('queueAppList')) || [];
+
+    function saveData() {
+      localStorage.setItem('queueAppData', JSON.stringify(appData));
+      localStorage.setItem('queueAppList', JSON.stringify(queue));
+    }
+
+    function getCurrentClass() {
+      return appData.classes.find(c => c.id === appData.activeClassId) || appData.classes[0];
+    }
+
+    // Render-Funktionen
+    function renderApp() {
+      renderClassSelect();
+      renderStudents();
+      renderQueue();
+    }
+
+    function renderClassSelect() {
+      const select = document.getElementById('classSelect');
+      select.innerHTML = '';
+      appData.classes.forEach(c => {
+        const option = document.createElement('option');
+        option.value = c.id;
+        option.textContent = c.name;
+        if (c.id === appData.activeClassId) option.selected = true;
+        select.appendChild(option);
+      });
+    }
+
+    function renderStudents() {
+      const grid = document.getElementById('studentGrid');
+      grid.innerHTML = '';
+      const currentClass = getCurrentClass();
+
+      if (!currentClass || currentClass.students.length === 0) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #888; margin-top: 40px;">Keine Schüler in dieser Klasse vorhanden. Klicke oben auf "Klassen verwalten".</p>';
+        return;
+      }
+
+      currentClass.students.forEach(name => {
+        const inQueue = queue.some(item => item.name === name);
+        const card = document.createElement('div');
+        card.className = `student-card ${inQueue ? 'disabled' : ''}`;
+        
+        card.innerHTML = `
+          <div class="student-name">${name}</div>
+          <div class="btn-group">
+            <button class="btn-queue btn-yellow" onclick="addToQueue('${name}', 'short')" ${inQueue ? 'disabled' : ''}>
+              ${svgHourglass} <span>Kurz</span>
+            </button>
+            <button class="btn-queue btn-red" onclick="addToQueue('${name}', 'long')" ${inQueue ? 'disabled' : ''}>
+              ${svgHourglass} <span>Lang</span>
+            </button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderQueue() {
+      const queueList = document.getElementById('queueList');
+      const queueCount = document.getElementById('queueCount');
+      queueList.innerHTML = '';
+      queueCount.textContent = queue.length;
+
+      if (queue.length === 0) {
+        queueList.innerHTML = '<div class="empty-queue">Keine Schüler in der Warteschlange.</div>';
+        return;
+      }
+
+      queue.forEach((item, index) => {
+        const el = document.createElement('div');
+        el.className = `queue-item ${item.type}`;
+        const label = item.type === 'short' ? 'Kurze Frage' : 'Lange Frage';
+        
+        el.innerHTML = `
+          <span>${index + 1}. ${item.name}</span>
+          <span style="font-size: 0.9rem; opacity: 0.9; display: flex; align-items: center; gap: 6px;">
+            ${svgHourglass} ${label}
+          </span>
+        `;
+        el.onclick = () => removeFromQueue(index);
+        queueList.appendChild(el);
+      });
+    }
+
+    // Warteschlangen-Aktionen
+    function addToQueue(name, type) {
+      if (!queue.some(item => item.name === name)) {
+        queue.push({ name, type });
+        saveData();
+        renderStudents();
+        renderQueue();
+      }
+    }
+
+    function removeFromQueue(index) {
+      queue.splice(index, 1);
+      saveData();
+      renderStudents();
+      renderQueue();
+    }
+
+    function clearQueue() {
+      if (confirm("Möchtest du die gesamte Warteschlange leeren?")) {
+        queue = [];
+        saveData();
+        renderStudents();
+        renderQueue();
+      }
+    }
+
+    function switchClass(classId) {
+      appData.activeClassId = classId;
+      queue = []; // Warteschlange beim Klassenwechsel zurücksetzen
+      saveData();
+      renderApp();
+    }
+
+    // Modal- & Klassenverwaltung
+    function openModal() {
+      document.getElementById('manageModal').style.display = 'flex';
+      renderModalContent();
+    }
+
+    function closeModal() {
+      document.getElementById('manageModal').style.display = 'none';
+      renderApp();
+    }
+
+    function renderModalContent() {
+      const currentClass = getCurrentClass();
+      document.getElementById('modalClassName').textContent = currentClass ? currentClass.name : '-';
+      
+      const list = document.getElementById('manageStudentList');
+      list.innerHTML = '';
+
+      if (currentClass) {
+        currentClass.students.forEach((student, idx) => {
+          const item = document.createElement('div');
+          item.className = 'manage-item';
+          item.innerHTML = `
+            <span>${student}</span>
+            <button class="btn-danger" onclick="removeStudent(${idx})">Löschen</button>
+          `;
+          list.appendChild(item);
+        });
+      }
+    }
+
+    function addClass() {
+      const input = document.getElementById('newClassName');
+      const name = input.value.trim();
+      if (name) {
+        const newId = 'c_' + Date.now();
+        appData.classes.push({ id: newId, name: name, students: [] });
+        appData.activeClassId = newId;
+        queue = [];
+        input.value = '';
+        saveData();
+        renderModalContent();
+        renderClassSelect();
+      }
+    }
+
+    function deleteCurrentClass() {
+      if (appData.classes.length <= 1) {
+        alert("Es muss mindestens eine Klasse existieren!");
+        return;
+      }
+      if (confirm(`Möchtest du die Klasse "${getCurrentClass().name}" wirklich löschen?`)) {
+        appData.classes = appData.classes.filter(c => c.id !== appData.activeClassId);
+        appData.activeClassId = appData.classes[0].id;
+        queue = [];
+        saveData();
+        renderModalContent();
+        renderClassSelect();
+      }
+    }
+
+    function addStudent() {
+      const input = document.getElementById('newStudentName');
+      const name = input.value.trim();
+      const currentClass = getCurrentClass();
+
+      if (name && currentClass) {
+        currentClass.students.push(name);
+        input.value = '';
+        saveData();
+        renderModalContent();
+      }
+    }
+
+    function removeStudent(index) {
+      const currentClass = getCurrentClass();
+      if (currentClass) {
+        currentClass.students.splice(index, 1);
+        saveData();
+        renderModalContent();
+      }
+    }
+
+    // Erstes Rendern beim Laden der Seite
+    renderApp();
+  </script>
+</body>
+</html>
